@@ -9,29 +9,29 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 public class BookRepository {
 
     private final List<Book> books;
-
+    private static final String ID = "id";
+    private static final String TITLE = "title";
+    private static final String AUTHOR = "author";
     
     public BookRepository() {
         this.books = new ArrayList<>();
     }
 
-    public String generateUniqueId2() {
-        String id = Long.toString(Math.abs(UUID.randomUUID().getMostSignificantBits()), 36);
-        if (id.startsWith("-")) id = id.substring(1);
-        return id;
-    }
-    
-    private String randomBase62(int length) {
-        StringBuilder sb = new StringBuilder(length);
+    private String randomBase62(int len) {
+        StringBuilder sb = new StringBuilder(len);
         final String BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
         final SecureRandom random = new SecureRandom();
 
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < len; i++) {
             int idx = random.nextInt(BASE62.length());
             sb.append(BASE62.charAt(idx));
         }
@@ -54,12 +54,11 @@ public class BookRepository {
         return id;
     }
 
-    public Book save(Book book, boolean keepId) {
-        if (!keepId || book.getId() == null) {
+    public void save(Book book) {
+        if (book.getId() == null || books.stream().anyMatch(b -> b.getId().equals(book.getId()))) {
             book.setId(generateUniqueId());
         }
         books.add(book);
-        return book;
     }
 
     public boolean delete(String id) {
@@ -70,25 +69,25 @@ public class BookRepository {
         return books;
     }
 
-    public Book update(String id, Book updatedBook) {
-        return books.stream()
+    public void update(String id, Book updatedBook) {
+        books.stream()
                 .filter(book -> book.getId().equals(id))
                 .findFirst()
-                .map(book -> {
+                .ifPresent(book -> {
                     book.setTitle(updatedBook.getTitle());
                     book.setAuthor(updatedBook.getAuthor());
-                    return book;
-                }).orElse(null);
+                });
     }
 
-    public Book getById(String id) {
-        return books.stream().filter(book -> book.getId().equals(id)).findFirst().orElse(null);
+    public Optional<Book> getById(String id) {
+        return books.stream().filter(book -> book.getId().equals(id)).findFirst();
     }
 
     public boolean saveToCSV(String filePath) {
         try (FileWriter out = new FileWriter(filePath);
-             CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT
-                     .withHeader("id", "title", "author"))) {
+             CSVPrinter printer = new CSVPrinter(out, CSVFormat.DEFAULT)) {
+            printer.printRecord(ID, TITLE, AUTHOR);
+
             for (Book book : getAllBooks()) {
                 printer.printRecord(book.getId(), book.getTitle(), book.getAuthor());
             }
@@ -101,17 +100,17 @@ public class BookRepository {
     public boolean loadFromCSV(String filePath) {
         try (FileReader in = new FileReader(filePath)) {
             CSVFormat csvFormat = CSVFormat.DEFAULT.builder()
-                    .setHeader("id", "title", "author")
+                    .setHeader(ID, TITLE, AUTHOR)
                     .setSkipHeaderRecord(true)
                     .build();
 
-            for (CSVRecord record : csvFormat.parse(in)) {
+            for (CSVRecord rec : csvFormat.parse(in)) {
                 Book book = new Book(
-                        record.get("id"),
-                        record.get("title"),
-                        record.get("author")
+                        rec.get(ID),
+                        rec.get(TITLE),
+                        rec.get(AUTHOR)
                 );
-                save(book, true);
+                save(book);
             }
             return true;
         } catch (IOException e) {

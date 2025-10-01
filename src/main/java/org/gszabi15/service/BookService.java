@@ -8,30 +8,23 @@ import org.gszabi15.repository.BookRepository;
 import java.util.List;
 import java.util.Optional;
 
-public class BookService {
+public record BookService(BookRepository bookRepository) {
 
-    private final BookRepository bookRepository;
-
-    public BookService(BookRepository bookRepository) {
-        this.bookRepository = bookRepository;
-    }
-
-    public BookDto createBook(BookDto bookDto, boolean keepId) {
+    public void createBook(BookDto bookDto) {
         Book book = convertToEntity(bookDto);
-        Book savedBook = bookRepository.save(book, keepId);
-        return convertToDto(savedBook);
+        bookRepository.save(book);
     }
 
-    public BookDto updateBook(String id, BookDto bookDto) {
-        return convertToDto(bookRepository.update(id, convertToEntity(bookDto)));
+    public void updateBook(String id, BookDto bookDto) {
+        bookRepository.update(id, convertToEntity(bookDto));
     }
 
     public boolean deleteBook(String id) {
         return bookRepository.delete(id);
     }
 
-    public BookDto getBookById(String id) {
-        return convertToDto(bookRepository.getById(id));
+    public Optional<BookDto> getBookById(String id) {
+        return bookRepository.getById(id).map(this::convertToDto);
     }
 
     public List<BookDto> getAllBooks() {
@@ -44,14 +37,6 @@ public class BookService {
 
     private Book convertToEntity(BookDto bookDto) {
         return new Book(bookDto.getId(), bookDto.getTitle(), bookDto.getAuthor());
-    }
-
-    public boolean saveToCSV(String filePath) {
-        return bookRepository.saveToCSV(filePath);
-    }
-
-    public boolean loadFromCSV(String filePath) {
-        return bookRepository.loadFromCSV(filePath);
     }
 
     public String generateUniqueId() {
