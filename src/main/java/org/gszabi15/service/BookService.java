@@ -1,22 +1,24 @@
 package org.gszabi15.service;
 
-
 import org.gszabi15.model.Book;
 import org.gszabi15.model.BookDto;
 import org.gszabi15.repository.BookRepository;
 
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
-public record BookService(BookRepository bookRepository) {
+@Service
+public record BookService(BookRepository bookRepository, ModelMapper modelMapper) {
 
     public void createBook(BookDto bookDto) {
-        Book book = convertToEntity(bookDto);
+        Book book = modelMapper.map(bookDto, Book.class);
         bookRepository.save(book);
     }
 
     public void updateBook(String id, BookDto bookDto) {
-        bookRepository.update(id, convertToEntity(bookDto));
+        bookRepository.update(id, modelMapper.map(bookDto, Book.class));
     }
 
     public boolean deleteBook(String id) {
@@ -24,19 +26,15 @@ public record BookService(BookRepository bookRepository) {
     }
 
     public Optional<BookDto> getBookById(String id) {
-        return bookRepository.getById(id).map(this::convertToDto);
+        return bookRepository.getById(id)
+                .map(book -> modelMapper.map(book, BookDto.class));
     }
 
     public List<BookDto> getAllBooks() {
-        return bookRepository.getAllBooks().stream().map(this::convertToDto).toList();
-    }
-
-    private BookDto convertToDto(Book book) {
-        return new BookDto(book.getId(), book.getTitle(), book.getAuthor());
-    }
-
-    private Book convertToEntity(BookDto bookDto) {
-        return new Book(bookDto.getId(), bookDto.getTitle(), bookDto.getAuthor());
+        return bookRepository.getAllBooks()
+                .stream()
+                .map(book -> modelMapper.map(book, BookDto.class))
+                .toList();
     }
 
     public String generateUniqueId() {

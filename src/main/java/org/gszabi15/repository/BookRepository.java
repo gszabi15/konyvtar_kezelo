@@ -1,10 +1,13 @@
 package org.gszabi15.repository;
 
+import org.gszabi15.model.Book;
+
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
-import org.gszabi15.model.Book;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Repository;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -15,7 +18,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+@Repository
 public class BookRepository {
+
+    @Autowired
+    private ApplicationContext context;
 
     private final List<Book> books;
     private static final String ID = "id";
@@ -98,6 +105,7 @@ public class BookRepository {
     }
 
     public boolean loadFromCSV(String filePath) {
+
         try (FileReader in = new FileReader(filePath)) {
             CSVFormat csvFormat = CSVFormat.DEFAULT.builder()
                     .setHeader(ID, TITLE, AUTHOR)
@@ -105,11 +113,10 @@ public class BookRepository {
                     .build();
 
             for (CSVRecord rec : csvFormat.parse(in)) {
-                Book book = new Book(
-                        rec.get(ID),
-                        rec.get(TITLE),
-                        rec.get(AUTHOR)
-                );
+                Book book = context.getBean(Book.class);
+                book.setId(rec.get(ID));
+                book.setTitle(rec.get(TITLE));
+                book.setAuthor(rec.get(AUTHOR));
                 save(book);
             }
             return true;

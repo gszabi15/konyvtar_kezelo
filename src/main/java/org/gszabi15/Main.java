@@ -3,11 +3,11 @@ package org.gszabi15;
 import org.gszabi15.controller.BookController;
 import org.gszabi15.model.BookDto;
 import org.gszabi15.repository.BookRepository;
-import org.gszabi15.service.BookService;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Scanner;
 
 public class Main {
@@ -16,16 +16,18 @@ public class Main {
 
     public static void main(String[] args) {
 
-        final BookRepository bookRepository = new BookRepository();
-        final BookService bookService = new BookService(bookRepository);
-        final BookController bookController = new BookController( bookService );
+        ApplicationContext context =
+                new AnnotationConfigApplicationContext("org.gszabi15");
+
+        BookController bookController = context.getBean(BookController.class);
+        BookRepository bookRepository = context.getBean(BookRepository.class);
 
         while (true) {
             int choice = mainMenu();
 
             switch (choice) {
                 case 0 -> { return; }
-                case 1 -> addBook(bookController);
+                case 1 -> addBook(bookController, context.getBean(BookDto.class));
                 case 2 -> delBookById(bookController);
                 case 3 -> modifyBook(bookController);
                 case 4 -> listAllBooks(bookController);
@@ -117,11 +119,12 @@ public class Main {
         return scanner.nextLine();
     }
 
-    public static void addBook(BookController bookController) {
+    public static void addBook(BookController bookController, BookDto book) {
         String id = bookController.generateUniqueId();
         String title = "=============== Új könyv hozzáadása ===============";
 
-        BookDto book = new BookDto(id, "", "");
+        book.setId(id);
+
         while (true) {
             int choice = bookShow(title, book);
 
@@ -143,11 +146,11 @@ public class Main {
 
         String id = askInput("============= Könyv törlése ID alapján =============", "ID: ");
 
-        Optional<BookDto> book = bookController.getBookById(id);
+        BookDto book = bookController.getBookById(id);
 
-        if (book.isPresent()) {
+        if (book != null) {
 
-            if (bookConfirm("================= Biztosan törli? =================", book.get(), "Törlés")) {
+            if (bookConfirm("================= Biztosan törli? =================", book, "Törlés")) {
                 if (!bookController.deleteBook(id)) {
                     System.out.print("Nem sikerült törölni a könyvet!\nTovábblépéshez nyomjon entert!");
                     waitChar();
