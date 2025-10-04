@@ -27,7 +27,7 @@ public class Main {
 
             switch (choice) {
                 case 0 -> { return; }
-                case 1 -> addBook(bookController, context.getBean(BookDto.class));
+                case 1 -> addBook(bookController);
                 case 2 -> delBookById(bookController);
                 case 3 -> modifyBook(bookController);
                 case 4 -> listAllBooks(bookController);
@@ -119,11 +119,11 @@ public class Main {
         return scanner.nextLine();
     }
 
-    public static void addBook(BookController bookController, BookDto book) {
+    public static void addBook(BookController bookController) {
         String id = bookController.generateUniqueId();
         String title = "=============== Új könyv hozzáadása ===============";
 
-        book.setId(id);
+        BookDto book = new BookDto(id, "", "");
 
         while (true) {
             int choice = bookShow(title, book);

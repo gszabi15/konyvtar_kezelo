@@ -7,7 +7,12 @@ import org.springframework.stereotype.Controller;
 import java.util.List;
 
 @Controller
-public record BookController(BookService bookservice) {
+public class BookController {
+    private final BookService bookservice;
+
+    public BookController(BookService bookservice) {
+        this.bookservice = bookservice;
+    }
 
     public List<BookDto> getAllBooks() {
         return bookservice.getAllBooks();
@@ -26,11 +31,10 @@ public record BookController(BookService bookservice) {
     }
 
     public BookDto getBookById(String id) {
-        return bookservice.getBookById(id).orElse(null);
+        return bookservice.getBookById(id);
     }
 
     public String generateUniqueId() {
         return bookservice.generateUniqueId();
     }
-
 }
