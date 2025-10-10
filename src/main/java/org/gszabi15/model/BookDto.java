@@ -9,10 +9,10 @@ import lombok.Setter;
 @NoArgsConstructor
 @Setter @Getter
 public class BookDto {
-
     private String id;
     private String title;
     private String author;
+    private boolean available;
 
     @Override
     public String toString() {

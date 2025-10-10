@@ -1,44 +1,65 @@
 package org.gszabi15.service;
 
 import org.gszabi15.model.BookDto;
+import org.gszabi15.mapper.EntityMapper;
+import org.gszabi15.model.Book;
 import org.gszabi15.repository.BookRepository;
-import org.gszabi15.mapper.BookMapper;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class BookService {
+    private final BookRepository repo;
+    private final EntityMapper mapper;
 
-    private final BookRepository bookRepository;
-    private final BookMapper mapper;
-
-    public BookService(BookRepository bookRepository, BookMapper mapper) {
-        this.bookRepository = bookRepository;
+    public BookService(BookRepository repo, EntityMapper mapper) {
+        this.repo = repo;
         this.mapper = mapper;
     }
 
-    public void createBook(BookDto bookDto) {
-        bookRepository.save(mapper.bookDtoToBook(bookDto));
+    public Page<BookDto> getAllPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("title").ascending());
+        return repo.findAll(pageable).map(mapper::bookToDto);
     }
 
-    public void updateBook(String id, BookDto bookDto) {
-        bookRepository.update(id, mapper.bookDtoToBook(bookDto));
+    public BookDto getById(String id) {
+        return repo.findById(id).map(mapper::bookToDto).orElse(null);
     }
 
-    public boolean deleteBook(String id) {
-        return bookRepository.delete(id);
+    public BookDto create(BookDto dto) {
+        if (dto.getId() == null || dto.getId().isBlank()) {
+            dto.setId(UUID.randomUUID().toString());
+        }
+        Book book = mapper.dtoToBook(dto);
+        book.setAvailable(true);
+        repo.save(book);
+        return mapper.bookToDto(book);
     }
 
-    public BookDto getBookById(String id) {
-        return bookRepository.getById(id).map(mapper::bookToBookDto).orElse(null);
+    public BookDto update(String id, BookDto dto) {
+        Optional<Book> opt = repo.findById(id);
+        if (opt.isPresent()) {
+            Book b = opt.get();
+            b.setTitle(dto.getTitle());
+            b.setAuthor(dto.getAuthor());
+            b.setAvailable(dto.isAvailable());
+            repo.save(b);
+            return mapper.bookToDto(b);
+        }
+        return null;
     }
 
-    public List<BookDto> getAllBooks() {
-        return mapper.bookListToBookDtoList(bookRepository.getAllBooks());
-    }
-
-    public String generateUniqueId() {
-        return bookRepository.generateUniqueId();
+    public boolean delete(String id) {
+        if (repo.existsById(id)) {
+            repo.deleteById(id);
+            return true;
+        }
+        return false;
     }
 }
