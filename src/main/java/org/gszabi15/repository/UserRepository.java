@@ -1,0 +1,11 @@
+package org.gszabi15.repository;
+
+import org.gszabi15.model.User;
+
+import org.jetbrains.annotations.NotNull;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRepository extends JpaRepository<@NotNull User, @NotNull String> {
+}
