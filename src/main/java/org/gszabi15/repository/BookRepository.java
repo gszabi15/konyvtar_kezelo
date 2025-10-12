@@ -1,6 +1,6 @@
 package org.gszabi15.repository;
 
-import org.gszabi15.model.Book;
+import org.gszabi15.model.entity.Book;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,4 +1,4 @@
-package org.gszabi15.model;
+package org.gszabi15.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

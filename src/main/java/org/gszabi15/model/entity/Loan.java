@@ -1,4 +1,4 @@
-package org.gszabi15.model;
+package org.gszabi15.model.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
