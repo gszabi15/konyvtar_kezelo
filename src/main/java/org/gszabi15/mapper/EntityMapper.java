@@ -1,11 +1,11 @@
 package org.gszabi15.mapper;
 
-import org.gszabi15.model.BookDto;
-import org.gszabi15.model.UserDto;
-import org.gszabi15.model.LoanDto;
-import org.gszabi15.model.Book;
-import org.gszabi15.model.User;
-import org.gszabi15.model.Loan;
+import org.gszabi15.model.dto.BookDto;
+import org.gszabi15.model.dto.UserDto;
+import org.gszabi15.model.dto.LoanDto;
+import org.gszabi15.model.entity.Book;
+import org.gszabi15.model.entity.User;
+import org.gszabi15.model.entity.Loan;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

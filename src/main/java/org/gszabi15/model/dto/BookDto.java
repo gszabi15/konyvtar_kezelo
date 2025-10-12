@@ -1,29 +1,23 @@
-package org.gszabi15.model;
+package org.gszabi15.model.dto;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-
-@Entity
-@Table(name = "books")
 @AllArgsConstructor
 @NoArgsConstructor
 @Setter @Getter
-public class Book {
-    @Id
+public class BookDto {
     private String id;
     private String title;
     private String author;
-
-    private boolean available = true;
+    private boolean available;
 
     @Override
     public String toString() {
         return id + " - " + title + " (" + author + ")";
     }
+
+
 }

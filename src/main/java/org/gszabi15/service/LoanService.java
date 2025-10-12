@@ -1,38 +1,36 @@
 package org.gszabi15.service;
 
-import org.gszabi15.model.LoanDto;
+import org.gszabi15.model.dto.LoanDto;
 import org.gszabi15.mapper.EntityMapper;
-import org.gszabi15.model.Book;
-import org.gszabi15.model.Loan;
-import org.gszabi15.model.User;
+import org.gszabi15.model.entity.Book;
+import org.gszabi15.model.entity.Loan;
+import org.gszabi15.model.entity.User;
 import org.gszabi15.repository.BookRepository;
 import org.gszabi15.repository.LoanRepository;
 import org.gszabi15.repository.UserRepository;
+import org.gszabi15.exceptions.BookNotAvailableException;
+import org.gszabi15.exceptions.LoanNotFoundException;
+import org.gszabi15.exceptions.UserNotFoundException;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class LoanService {
     private final LoanRepository loanRepo;
     private final UserRepository userRepo;
     private final BookRepository bookRepo;
     private final EntityMapper mapper;
 
-    public LoanService(LoanRepository loanRepo, UserRepository userRepo, BookRepository bookRepo, EntityMapper mapper) {
-        this.loanRepo = loanRepo;
-        this.userRepo = userRepo;
-        this.bookRepo = bookRepo;
-        this.mapper = mapper;
-    }
-
     public LoanDto borrowBook(String userId, String bookId, int days) {
-        User user = userRepo.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
-        Book book = bookRepo.findById(bookId).orElseThrow(() -> new IllegalArgumentException("Book not found"));
+        User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        Book book = bookRepo.findById(bookId).orElseThrow(() -> new BookNotAvailableException("Book not found with id: " + bookId));
 
         if (!book.isAvailable()) {
-            throw new IllegalStateException("Book is not available");
+            throw new BookNotAvailableException("Book not available");
         }
 
         Loan loan = new Loan();
@@ -55,7 +53,7 @@ public class LoanService {
     }
 
     public LoanDto returnLoan(Long loanId) {
-        Loan loan = loanRepo.findById(loanId).orElseThrow(() -> new IllegalArgumentException("Loan not found"));
+        Loan loan = loanRepo.findById(loanId).orElseThrow(() -> new LoanNotFoundException("Loan not found with id: " + loanId));
         if (!loan.isReturned()) {
             loan.setReturned(true);
             Book book = loan.getBook();
