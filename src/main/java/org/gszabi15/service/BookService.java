@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -26,35 +27,35 @@ public class BookService {
     }
 
     public BookDto getById(String id) {
-        return repo.findById(id).map(mapper::bookToDto)
+        return repo.findById(UUID.fromString(id)).map(mapper::bookToDto)
                 .orElseThrow(() -> new BookNotAvailableException("Book not found with id: " + id));
     }
 
     public BookDto create(BookDto dto) {
         Book book = mapper.dtoToBook(dto);
+        book.setId(null);
         book.setAvailable(true);
         repo.save(book);
         return mapper.bookToDto(book);
     }
 
     public BookDto update(String id, BookDto dto) {
-        Optional<Book> opt = repo.findById(id);
+        Optional<Book> opt = repo.findById(UUID.fromString(id));
         if (opt.isEmpty()) {
             throw new BookNotAvailableException("Book not found with id: " + id);
         }
-        repo.deleteById(id);
-        Book b = opt.get();
-        b.setTitle(dto.getTitle());
-        b.setAuthor(dto.getAuthor());
-        b.setAvailable(dto.isAvailable());
-        repo.save(b);
-        return mapper.bookToDto(b);
+        opt.get().setTitle(dto.getTitle());
+        opt.get().setAuthor(dto.getAuthor());
+        opt.get().setAvailable(dto.isAvailable());
+        repo.save(opt.get());
+
+        return mapper.bookToDto(opt.get());
     }
 
     public void delete(String id) {
-        if (!repo.existsById(id)) {
+        if (!repo.existsById(UUID.fromString(id))) {
             throw new BookNotAvailableException("Book not found with id: " + id);
         }
-        repo.deleteById(id);
+        repo.deleteById(UUID.fromString(id));
     }
 }

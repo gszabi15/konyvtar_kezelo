@@ -21,16 +21,10 @@ public class GlobalExceptionHandler {
         return new ErrorResponse("LOAN_NOT_FOUND", ex.getMessage());
     }
 
-    @ExceptionHandler(UserNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleUserNotFound(UserNotFoundException ex) {
-        return new ErrorResponse("USER_NOT_FOUND", ex.getMessage());
-    }
-
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleGeneric(Exception ex) {
-        return new ErrorResponse("INTERNAL_ERROR", "Unexpected error occurred");
+        return new ErrorResponse("INTERNAL_ERROR", "Unexpected error occurred: "+ex.getMessage());
     }
 
     @Data

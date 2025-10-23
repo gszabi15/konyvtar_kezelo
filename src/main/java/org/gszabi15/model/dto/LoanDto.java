@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoanDto {
-    private Long id;
+    private String id;
     private String userId;
     private String bookId;
     private LocalDate borrowDate;
