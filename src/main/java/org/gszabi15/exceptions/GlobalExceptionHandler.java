@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleGeneric(Exception ex) {
-        return new ErrorResponse("INTERNAL_ERROR", "Unexpected error occurred: "+ex.getMessage());
+        return new ErrorResponse("INTERNAL_ERROR", "Unexpected error occurred");
     }
 
     @Data

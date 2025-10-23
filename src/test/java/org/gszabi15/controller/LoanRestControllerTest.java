@@ -3,7 +3,6 @@ package org.gszabi15.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.gszabi15.model.dto.BookDto;
-import org.gszabi15.model.dto.LoanDto;
 import org.gszabi15.model.dto.UserDto;
 import org.gszabi15.model.entity.BorrowRequest;
 import org.gszabi15.service.JwtService;
@@ -15,13 +14,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.util.UUID;
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = true)
