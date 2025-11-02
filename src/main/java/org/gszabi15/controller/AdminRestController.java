@@ -21,27 +21,27 @@ import java.util.List;
 public class AdminRestController {
     private final AdminService service;
 
-    @PostMapping("/create")
+    @PostMapping
     public UserDto create(@RequestBody UserDto dto) {
         return service.create(dto);
     }
 
-    @GetMapping("/getByEmail/{email}")
+    @GetMapping("/{email}")
     public UserDto getByEmail(@PathVariable("email") String email) {
         return service.getByEmail(email);
     }
 
-    @PutMapping("/updateByEmail/{email}")
+    @PutMapping("/{email}")
     public UserDto updateByEmail(@PathVariable("email") String email, @RequestBody UserDto dto) {
         return service.updateByEmail(email, dto);
     }
 
-    @DeleteMapping("/deleteByEmail/{email}")
+    @DeleteMapping("/{email}")
     public void deleteByEmail(@PathVariable("email") String email) {
         service.deleteByEmail(email);
     }
 
-    @GetMapping("/getAllUser")
+    @GetMapping
     public List<UserDto> getAllUser(){
         return service.getAllUser();
     }

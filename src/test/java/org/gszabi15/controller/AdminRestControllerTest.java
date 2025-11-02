@@ -29,7 +29,7 @@ class AdminRestControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user/create")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(testuser)))
                 .andExpect(status().isOk())
@@ -40,7 +40,7 @@ class AdminRestControllerTest {
     void create() throws Exception {
         String token = jwtService.generateToken(adminuser.getEmail());
         UserDto dto = new UserDto("newadmin","newadmin@example.com", "newadmin123", "ROLE_USER,ROLE_ADMIN");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/create")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(dto)))
@@ -50,7 +50,7 @@ class AdminRestControllerTest {
     @Test
     void getByEmail() throws Exception {
         String token = jwtService.generateToken(adminuser.getEmail());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/getByEmail/"+testuser.getEmail())
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/"+testuser.getEmail())
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
@@ -62,7 +62,7 @@ class AdminRestControllerTest {
         UserDto newuser = new UserDto();
         newuser.setName("new_test");
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/admin/updateByEmail/"+testuser.getEmail())
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/admin/"+testuser.getEmail())
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(newuser)))
@@ -73,7 +73,7 @@ class AdminRestControllerTest {
     void deleteByEmail() throws Exception {
         String token = jwtService.generateToken(adminuser.getEmail());
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/admin/deleteByEmail/"+testuser.getEmail())
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/admin/"+testuser.getEmail())
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
@@ -83,7 +83,7 @@ class AdminRestControllerTest {
     void getAllUser() throws Exception {
         String token = jwtService.generateToken(adminuser.getEmail());
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/getAllUser")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());

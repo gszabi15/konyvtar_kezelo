@@ -46,7 +46,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/user/create",
+                                "/api/user",
                                 "/api/auth/generateToken",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -54,7 +54,7 @@ public class SecurityConfig {
                                 "/h2-console",
                                 "/h2-console/**"
                         ).permitAll()
-
+                        .requestMatchers("/api/admin").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/**").hasAuthority("ROLE_USER")
 

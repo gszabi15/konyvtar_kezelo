@@ -17,17 +17,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserRestController {
     private final UserService service;
 
-    @PostMapping("/create")
+    @PostMapping
     public String create(@RequestBody UserDto dto) {
         return service.create(dto);
     }
 
-    @PutMapping("/update")
+    @PutMapping
     public String update(@RequestBody UserDto dto) {
         return service.update(dto);
     }
 
-    @DeleteMapping("/delete")
+    @DeleteMapping
     public String delete() {
         return service.delete();
     }
