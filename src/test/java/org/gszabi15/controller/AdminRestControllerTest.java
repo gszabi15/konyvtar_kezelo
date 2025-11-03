@@ -83,7 +83,7 @@ class AdminRestControllerTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(user.getEmail(), result.get(0).getEmail());
+        assertEquals(user.getEmail(), result.getFirst().getEmail());
         verify(adminService).getAllUser();
     }
 }

@@ -8,7 +8,6 @@ import org.gszabi15.model.entity.User;
 import org.gszabi15.repository.BookRepository;
 import org.gszabi15.repository.LoanRepository;
 import org.gszabi15.repository.UserRepository;
-import org.gszabi15.repository.UserRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -113,7 +112,7 @@ class LoanServiceTest {
         List<LoanDto> result = loanService.getExpiredLoansByUser();
 
         assertEquals(1, result.size());
-        assertEquals(loan.getId().toString(), result.get(0).getId());
+        assertEquals(loan.getId().toString(), result.getFirst().getId());
         verify(mapper).loanToDto(loan);
     }
 
@@ -125,7 +124,7 @@ class LoanServiceTest {
         List<LoanDto> result = loanService.getExpiredLoans();
 
         assertEquals(1, result.size());
-        assertEquals(loan.getId().toString(), result.get(0).getId());
+        assertEquals(loan.getId().toString(), result.getFirst().getId());
         verify(mapper).loanToDto(loan);
     }
 

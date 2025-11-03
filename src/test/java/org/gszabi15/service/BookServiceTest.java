@@ -59,7 +59,7 @@ class BookServiceTest {
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
-        assertEquals(book.getAuthor(), result.getContent().get(0).getAuthor());
+        assertEquals(book.getAuthor(), result.getContent().getFirst().getAuthor());
         verify(bookRepository).findAll(any(Pageable.class));
         verify(mapper).bookToDto(book);
     }

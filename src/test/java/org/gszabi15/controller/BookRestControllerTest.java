@@ -42,7 +42,7 @@ class BookRestControllerTest {
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
-        assertEquals(book.getTitle(), result.getContent().get(0).getTitle());
+        assertEquals(book.getTitle(), result.getContent().getFirst().getTitle());
         verify(bookService).getAllPaginated(0, 10);
     }
 
