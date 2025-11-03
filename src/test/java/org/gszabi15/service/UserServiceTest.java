@@ -4,26 +4,28 @@ import org.gszabi15.mapper.EntityMapper;
 import org.gszabi15.model.dto.UserDto;
 import org.gszabi15.model.entity.User;
 import org.gszabi15.repository.UserRepository;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -38,12 +40,30 @@ class UserServiceTest {
     @InjectMocks
     UserService userService;
 
-    private static final User user = new User(new UUID(123,123), "test", "test@t.com", "test123", "");
-    private static final UserDto adminuser = new UserDto("admin", "admin@example.com", "admin123", "ROLE_USER,ROLE_ADMIN");
+    private User user;
 
+    @BeforeEach
+    void setUp() {
+        user = new User(
+                UUID.randomUUID(),
+                "test",
+                "test@t.com",
+                "test123",
+                "ROLE_USER"
+        );
+    }
+
+    private void mockCurrentUser() {
+        Authentication auth = mock(Authentication.class);
+        when(auth.getName()).thenReturn(user.getEmail());
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(context);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+    }
 
     @Test
-    void create() {
+    void create_shouldReturnOk() {
         when(userRepository.save(user)).thenReturn(user);
         UserDto userDto = new UserDto(user.getName(), user.getEmail(), user.getPassword(), user.getRoles());
         when(mapper.dtoToUser(userDto)).thenReturn(user);
@@ -55,33 +75,46 @@ class UserServiceTest {
     }
 
     @Test
-    void update() throws Exception {
+    void update_shouldReturnOk() {
+        mockCurrentUser();
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
+        UserDto userDto = new UserDto("updatedName", user.getEmail(), user.getPassword(), user.getRoles());
+
+        when(userRepository.save(user)).thenReturn(user);
+        String result = userService.update(userDto);
+
+        assertEquals(userRepository.findById(user.getId()).get().getName(), userDto.getName());
+        assertEquals("User updated successfully.", result);
+        verify(userRepository).save(user);
     }
 
     @Test
-    void delete_shouldReturnOk() {
-        // Mock Authentication
-        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
-        Authentication auth = mock(Authentication.class);
-        when(auth.getName()).thenReturn(user.getEmail());
-        SecurityContext context = mock(SecurityContext.class);
-        when(context.getAuthentication()).thenReturn(auth);
-        SecurityContextHolder.setContext(context);
+    void delete_shouldCallRepositoryDelete() {
+        mockCurrentUser();
 
-        // Mock repository
-        when(userRepository.existsByEmail(user.getEmail())).thenReturn(true);
+        when(userRepository.existsById(user.getId())).thenReturn(true);
 
-        // Act
         String result = userService.delete();
 
-        // Assert
         assertEquals("User deleted successfully.", result);
-        verify(userRepository).deleteByEmail(user.getEmail());
+        verify(userRepository).deleteById(user.getId());
     }
 
     @Test
-    void loadUserByUsername() throws Exception {
+    void loadUserByUsername_shouldReturnUserDetails() {
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        UserDetails userDetails = userService.loadUserByUsername(user.getEmail());
+
+        assertNotNull(userDetails);
+        assertEquals(user.getEmail(), userDetails.getUsername());
+        assertTrue(userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
+        assertFalse(userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
+
+        verify(userRepository).findByEmail(user.getEmail());
 
     }
 }

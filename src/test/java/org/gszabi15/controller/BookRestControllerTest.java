@@ -1,112 +1,90 @@
 package org.gszabi15.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.gszabi15.model.dto.BookDto;
-import org.gszabi15.model.dto.UserDto;
-import org.gszabi15.service.JwtService;
+import org.gszabi15.service.BookService;
+
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc(addFilters = true)
+@ExtendWith(MockitoExtension.class)
 class BookRestControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
 
-    @Autowired
-    private JwtService jwtService;
+    @Mock
+    private BookService bookService;
 
-    private static final UserDto testuser = new UserDto("test", "test@t.com", "test123", "");
-    private static final UserDto adminuser = new UserDto("admin", "admin@example.com", "admin123", "ROLE_USER,ROLE_ADMIN");
-    private static BookDto testbook = new BookDto(null, "testBook", "testAuthor", true);
+    @InjectMocks
+    private BookRestController bookRestController;
 
+    private BookDto book;
 
     @BeforeEach
-    void setUp() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user/create")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(testuser)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("User created successfully."));
-
-        String token = jwtService.generateToken(adminuser.getEmail());
-
-        String responseBody = mockMvc.perform(MockMvcRequestBuilders.post("/api/books")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(testbook)))
-                .andExpect(status().isOk()).andReturn()  // ResultActions -> MvcResult
-                .getResponse()
-                .getContentAsString();
-
-        testbook = new ObjectMapper().readValue(responseBody, BookDto.class);
+    void setUp() {
+        book = new BookDto("1", "Test Title", "Test Author", true);
     }
 
     @Test
-    void getAll() throws Exception {
-        String token = jwtService.generateToken(testuser.getEmail());
+    void getAll_shouldReturnPage() {
+        Page<BookDto> page = new PageImpl<>(List.of(book));
+        when(bookService.getAllPaginated(0, 10)).thenReturn(page);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/books")
-                .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+        Page<BookDto> result = bookRestController.getAll(0, 10);
+
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+        assertEquals(book.getTitle(), result.getContent().get(0).getTitle());
+        verify(bookService).getAllPaginated(0, 10);
     }
 
     @Test
-    void getById() throws Exception {
-        String token = jwtService.generateToken(testuser.getEmail());
+    void getById_shouldReturnBook() {
+        when(bookService.getById("1")).thenReturn(book);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/books/"+testbook.getId())
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+        BookDto result = bookRestController.getById("1");
+
+        assertNotNull(result);
+        assertEquals(book.getTitle(), result.getTitle());
+        verify(bookService).getById("1");
     }
 
     @Test
-    void create() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
+    void create_shouldReturnBook() {
+        when(bookService.create(book)).thenReturn(book);
 
-        String responseBody = mockMvc.perform(MockMvcRequestBuilders.post("/api/books")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(testbook)))
-                .andExpect(status().isOk()).andReturn()  // ResultActions -> MvcResult
-                .getResponse()
-                .getContentAsString();
+        BookDto result = bookRestController.create(book);
 
-        testbook = new ObjectMapper().readValue(responseBody, BookDto.class);
-
+        assertNotNull(result);
+        assertEquals(book.getTitle(), result.getTitle());
+        verify(bookService).create(book);
     }
 
     @Test
-    void update() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
+    void update_shouldReturnBook() {
+        when(bookService.update("1", book)).thenReturn(book);
 
-        BookDto newbook = new BookDto(testbook.getId(), "new_testBook", "new_testAuthor", true);
+        BookDto result = bookRestController.update("1", book);
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/books/"+testbook.getId())
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(newbook)))
-                .andExpect(status().isOk());
+        assertNotNull(result);
+        assertEquals(book.getTitle(), result.getTitle());
+        verify(bookService).update("1", book);
     }
 
     @Test
-    void delete() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
+    void delete_shouldCallService() {
+        doNothing().when(bookService).delete("1");
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/books/"+testbook.getId())
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+        bookRestController.delete("1");
+
+        verify(bookService).delete("1");
     }
 }

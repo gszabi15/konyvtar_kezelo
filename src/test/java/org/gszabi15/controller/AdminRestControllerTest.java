@@ -1,91 +1,89 @@
 package org.gszabi15.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.gszabi15.model.dto.UserDto;
-import org.gszabi15.service.JwtService;
+import org.gszabi15.service.AdminService;
+
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import java.util.List;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc(addFilters = true)
+@ExtendWith(MockitoExtension.class)
 class AdminRestControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
 
-    @Autowired
-    private JwtService jwtService;
+    @Mock
+    private AdminService adminService;
 
-    private static final UserDto testuser = new UserDto("test", "test@t.com", "test123", "");
-    private static final UserDto adminuser = new UserDto("admin", "admin@example.com", "admin123", "ROLE_USER,ROLE_ADMIN");
+    @InjectMocks
+    private AdminRestController adminRestController;
+
+    private UserDto user;
 
     @BeforeEach
-    void setUp() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(testuser)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("User created successfully."));
+    void setUp() {
+        user = new UserDto("test", "test@t.com", "test123", "ROLE_USER");
     }
 
     @Test
-    void create() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
-        UserDto dto = new UserDto("newadmin","newadmin@example.com", "newadmin123", "ROLE_USER,ROLE_ADMIN");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(dto)))
-                .andExpect(status().isOk());
+    void create_shouldReturnOk() {
+        when(adminService.create(user)).thenReturn(user);
+
+        UserDto result = adminRestController.create(user);
+
+        assertNotNull(result);
+        assertEquals(user.getEmail(), result.getEmail());
+        verify(adminService).create(user);
     }
 
     @Test
-    void getByEmail() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/"+testuser.getEmail())
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+    void getByEmail_shouldReturnOk() {
+        when(adminService.getByEmail(user.getEmail())).thenReturn(user);
+
+        UserDto result = adminRestController.getByEmail(user.getEmail());
+
+        assertNotNull(result);
+        assertEquals(user.getEmail(), result.getEmail());
+        verify(adminService).getByEmail(user.getEmail());
     }
 
     @Test
-    void updateByEmail() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
-        UserDto newuser = new UserDto();
-        newuser.setName("new_test");
+    void updateByEmail_shouldReturnOk() {
+        UserDto userDto = new UserDto("updatedName", user.getEmail(), user.getPassword(), user.getRoles());
+        when(adminService.updateByEmail(eq(user.getEmail()), any(UserDto.class)))
+                .thenReturn(userDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/admin/"+testuser.getEmail())
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(newuser)))
-                .andExpect(status().isOk());
+        UserDto result = adminRestController.updateByEmail(user.getEmail(), userDto);
+
+        assertNotNull(result);
+        assertEquals(userDto.getName(), result.getName());
+        verify(adminService).updateByEmail(eq(user.getEmail()), any(UserDto.class));
     }
 
     @Test
-    void deleteByEmail() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
+    void deleteByEmail_shouldCallService() {
+        doNothing().when(adminService).deleteByEmail(user.getEmail());
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/admin/"+testuser.getEmail())
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+        adminRestController.deleteByEmail(user.getEmail());
+
+        verify(adminService).deleteByEmail(user.getEmail());
     }
 
     @Test
-    void getAllUser() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
+    void getAllUser_shouldReturnList() {
+        when(adminService.getAllUser()).thenReturn(List.of(user));
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+        List<UserDto> result = adminRestController.getAllUser();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(user.getEmail(), result.get(0).getEmail());
+        verify(adminService).getAllUser();
     }
 }

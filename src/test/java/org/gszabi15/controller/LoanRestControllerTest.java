@@ -1,129 +1,112 @@
 package org.gszabi15.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.gszabi15.model.dto.BookDto;
-import org.gszabi15.model.dto.UserDto;
+import org.gszabi15.model.dto.LoanDto;
 import org.gszabi15.model.entity.BorrowRequest;
-import org.gszabi15.service.JwtService;
+import org.gszabi15.service.LoanService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.util.List;
 import java.util.UUID;
 
-@SpringBootTest
-@AutoConfigureMockMvc(addFilters = true)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
 class LoanRestControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
 
-    @Autowired
-    private JwtService jwtService;
+    @Mock
+    private LoanService loanService;
 
-    private static final UserDto adminuser = new UserDto("admin", "admin@example.com", "admin123", "ROLE_USER,ROLE_ADMIN");
-    private static final UserDto testuser = new UserDto("test", "test@t.com", "test123", "");
-    private static BookDto testbook = new BookDto(null, "testBook", "testAuthor", true);
+    @InjectMocks
+    private LoanRestController loanRestController;
 
-    private UUID loanid;
+    private LoanDto loanDto;
+    private BorrowRequest borrowRequest;
 
     @BeforeEach
-    void setUp() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user/create")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(new ObjectMapper().writeValueAsString(testuser)))
-            .andExpect(status().isOk())
-            .andExpect(content().string("User created successfully."));
+    void setUp() {
+        loanDto = new LoanDto();
+        loanDto.setId(UUID.randomUUID().toString());
+        loanDto.setBookId(UUID.randomUUID().toString());
+        loanDto.setUserId(UUID.randomUUID().toString());
 
-        String token = jwtService.generateToken(adminuser.getEmail());
-
-        String responseBody = mockMvc.perform(MockMvcRequestBuilders.post("/api/books")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(testbook)))
-                .andExpect(status().isOk()).andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        testbook = new ObjectMapper().readValue(responseBody, BookDto.class);
-
+        borrowRequest = new BorrowRequest();
+        borrowRequest.setBookId(UUID.randomUUID());
+        borrowRequest.setUserEmail("test@t.com");
+        borrowRequest.setDays(7);
     }
 
     @Test
-    void borrow() throws Exception {
-        String token = jwtService.generateToken(testuser.getEmail());
+    void borrowAdmin_shouldReturnLoanDto() {
+        when(loanService.borrowBook(borrowRequest.getUserEmail(), borrowRequest.getBookId().toString(), 7))
+                .thenReturn(loanDto);
 
-        BorrowRequest requestBody = new BorrowRequest(UUID.fromString(testbook.getId()), null, 14);
+        LoanDto result = loanRestController.borrowAdmin(borrowRequest);
 
-        String responseBody = mockMvc.perform(MockMvcRequestBuilders.post("/api/loans/borrow")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(requestBody)))
-                .andExpect(status().isOk()).andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode node = mapper.readTree(responseBody);
-        loanid = UUID.fromString(node.get("id").asText());
+        assertNotNull(result);
+        assertEquals(loanDto.getId(), result.getId());
+        verify(loanService).borrowBook(borrowRequest.getUserEmail(), borrowRequest.getBookId().toString(), 7);
     }
 
     @Test
-    void borrowAdmin() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
+    void borrow_shouldReturnLoanDto() {
+        when(loanService.borrowBook(borrowRequest.getBookId().toString(), 7)).thenReturn(loanDto);
 
-        BorrowRequest requestBody = new BorrowRequest(UUID.fromString(testbook.getId()), testuser.getEmail(), 14);
+        LoanDto result = loanRestController.borrow(borrowRequest);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/loans/admin/borrow")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(requestBody)))
-                .andExpect(status().isOk());
-
+        assertNotNull(result);
+        assertEquals(loanDto.getId(), result.getId());
+        verify(loanService).borrowBook(borrowRequest.getBookId().toString(), 7);
     }
 
     @Test
-    void returnLoan() throws Exception {
-        borrow();
-        String token = jwtService.generateToken(testuser.getEmail());
+    void returnLoan_shouldReturnLoanDto() {
+        when(loanService.returnLoanByUser(loanDto.getId())).thenReturn(loanDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/loans/"+ loanid.toString() +"/return")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        LoanDto result = loanRestController.returnLoan(loanDto.getId());
+
+        assertNotNull(result);
+        assertEquals(loanDto.getId(), result.getId());
+        verify(loanService).returnLoanByUser(loanDto.getId());
     }
 
     @Test
-    void returnLoanAdmin() throws Exception {
-        borrow();
-        String token = jwtService.generateToken(adminuser.getEmail());
+    void returnLoanAdmin_shouldReturnLoanDto() {
+        when(loanService.returnLoan(loanDto.getId())).thenReturn(loanDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/loans/admin/"+ loanid.toString() +"/return")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        LoanDto result = loanRestController.returnLoanAdmin(loanDto.getId());
+
+        assertNotNull(result);
+        assertEquals(loanDto.getId(), result.getId());
+        verify(loanService).returnLoan(loanDto.getId());
     }
 
     @Test
-    void expired() throws Exception {
+    void expiredAdmin_shouldReturnList() {
+        when(loanService.getExpiredLoans()).thenReturn(List.of(loanDto));
 
-        String token = jwtService.generateToken(testuser.getEmail());
+        List<LoanDto> result = loanRestController.expiredAdmin();
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/loans/expired")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(loanService).getExpiredLoans();
     }
 
     @Test
-    void expiredAdmin() throws Exception {
-        String token = jwtService.generateToken(adminuser.getEmail());
+    void expired_shouldReturnList() {
+        when(loanService.getExpiredLoansByUser()).thenReturn(List.of(loanDto));
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/loans/admin/expired")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        List<LoanDto> result = loanRestController.expired();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(loanService).getExpiredLoansByUser();
     }
 }

@@ -1,63 +1,62 @@
 package org.gszabi15.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.gszabi15.model.dto.UserDto;
-import org.gszabi15.service.JwtService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
+import org.gszabi15.service.UserService;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc(addFilters = true)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
 class UserRestControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
 
-    @Autowired
-    private JwtService jwtService;
+    @Mock
+    private UserService userService;
 
-    private static final UserDto testuser = new UserDto("test", "test@t.com", "test123", "");
+    @InjectMocks
+    private UserRestController userRestController;
 
-    @Test
-    void create() throws Exception {
+    private UserDto user;
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user/create")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(testuser)))
-            .andExpect(status().isOk())
-            .andExpect(content().string("User created successfully."));
+    @BeforeEach
+    void setUp() {
+        user = new UserDto("test", "test@t.com", "test123", "ROLE_USER");
     }
 
     @Test
-    void update() throws Exception {
-        create();
-        UserDto user = new UserDto();
-        user.setName("new_test");
-        String token = jwtService.generateToken(testuser.getEmail());
+    void create_shouldReturnOk() {
+        when(userService.create(user)).thenReturn("User created successfully.");
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/user/update")
-                .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(user)))
-                    .andExpect(status().isOk())
-                    .andExpect(content().string("User updated successfully."));
+        String result = userRestController.create(user);
+
+        assertEquals("User created successfully.", result);
+        verify(userService).create(user);
     }
 
     @Test
-    void delete() throws Exception {
-        create();
-        String token = jwtService.generateToken(testuser.getEmail());
+    void update_shouldReturnOk() {
+        when(userService.update(user)).thenReturn("User updated successfully.");
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/delete")
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(content().string("User deleted successfully."));
+        String result = userRestController.update(user);
+
+        assertEquals("User updated successfully.", result);
+        verify(userService).update(user);
+    }
+
+    @Test
+    void delete_shouldReturnOk() {
+        when(userService.delete()).thenReturn("User deleted successfully.");
+
+        String result = userRestController.delete();
+
+        assertEquals("User deleted successfully.", result);
+        verify(userService).delete();
     }
 }

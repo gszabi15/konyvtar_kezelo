@@ -1,87 +1,166 @@
 package org.gszabi15.service;
 
-import org.gszabi15.model.dto.BookDto;
+import org.gszabi15.mapper.EntityMapper;
 import org.gszabi15.model.dto.LoanDto;
-import org.gszabi15.model.dto.UserDto;
-import org.junit.jupiter.api.AfterEach;
+import org.gszabi15.model.entity.Book;
+import org.gszabi15.model.entity.Loan;
+import org.gszabi15.model.entity.User;
+import org.gszabi15.repository.BookRepository;
+import org.gszabi15.repository.LoanRepository;
+import org.gszabi15.repository.UserRepository;
+import org.gszabi15.repository.UserRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 class LoanServiceTest {
-    @Autowired
-    LoanService service;
-    @Autowired
-    UserService userService;
-    @Autowired
-    BookService bookService;
 
-    private static final UserDto adminuser = new UserDto("admin", "admin@example.com", "admin123", "ROLE_USER,ROLE_ADMIN");
-    private static final UserDto testuser = new UserDto("test", "test@t.com", "test123", "ROLE_USER");
-    private BookDto testbook = new BookDto(null, "testBook", "testAuthor", true);
+    @Mock
+    private LoanRepository loanRepository;
 
-    private LoanDto loan = new LoanDto();
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private BookRepository bookRepository;
+
+    @Mock
+    private EntityMapper mapper;
+
+    @InjectMocks
+    private LoanService loanService;
+
+    private User user;
+    private Book book;
+    private Loan loan;
+    private LoanDto loanDto;
 
     @BeforeEach
-    void setUp() throws Exception {
-        userService.create(testuser);
-        testbook = bookService.create(testbook);
+    void setUp() {
+        user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("test@user.com");
 
-        Authentication auth = new UsernamePasswordAuthenticationToken(testuser.getEmail(), null, List.of());
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        book = new Book();
+        book.setId(UUID.randomUUID());
+        book.setTitle("Test Title"); // title first
+        book.setAuthor("Test Author"); // author second
+        book.setAvailable(true);
+
+        loan = new Loan();
+        loan.setId(UUID.randomUUID());
+        loan.setUser(user);
+        loan.setBook(book);
+        loan.setBorrowDate(LocalDate.now());
+        loan.setDueDate(LocalDate.now().plusDays(7));
+        loan.setReturned(false);
+
+        loanDto = new LoanDto();
+        loanDto.setId(loan.getId().toString());
+        loanDto.setBookId(book.getId().toString());
+        loanDto.setUserId(user.getId().toString());
     }
 
-    void loginAdmin() {
-        Authentication auth = new UsernamePasswordAuthenticationToken(adminuser.getEmail(), null, List.of());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
-    }
-
-    @Test
-    void borrowBook() throws Exception {
-        loan = service.borrowBook(testbook.getId(), 14);
-    }
-
-    @Test
-    void BorrowBookAdmin() throws Exception {
-        loan = service.borrowBook(adminuser.getEmail(), testbook.getId(), 14);
-    }
-
-    @Test
-    void getExpiredLoansByUser() throws Exception {
-        service.getExpiredLoansByUser();
-    }
-
-    @Test
-    void getExpiredLoans() throws Exception {
-        loginAdmin();
-        service.getExpiredLoans();
+    private void mockCurrentUser() {
+        Authentication auth = mock(Authentication.class);
+        when(auth.getName()).thenReturn(user.getEmail());
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(context);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
     }
 
     @Test
-    void returnLoanByUser() throws Exception {
-        borrowBook();
-        service.returnLoanByUser(loan.getId());
+    void borrowBook_shouldReturnLoanDto() {
+        mockCurrentUser();
+        when(bookRepository.findById(book.getId())).thenReturn(Optional.of(book));
+        when(loanRepository.save(any(Loan.class))).thenReturn(loan);
+        when(mapper.loanToDto(any(Loan.class))).thenReturn(loanDto);
+        when(bookRepository.save(book)).thenReturn(book);
+
+        LoanDto result = loanService.borrowBook(book.getId().toString(), 7);
+
+        assertNotNull(result);
+        assertEquals(book.getId().toString(), result.getBookId());
+        assertFalse(book.isAvailable());
+        verify(bookRepository).save(book);
+        verify(loanRepository).save(any(Loan.class));
+        verify(mapper).loanToDto(any(Loan.class));
     }
 
     @Test
-    void returnLoan() throws Exception {
-        borrowBook();
-        loginAdmin();
-        service.returnLoan(loan.getId());
+    void getExpiredLoansByUser_shouldReturnList() {
+        mockCurrentUser();
+        when(loanRepository.findByDueDateBeforeAndReturnedFalse(LocalDate.now())).thenReturn(List.of(loan));
+        when(mapper.loanToDto(loan)).thenReturn(loanDto);
 
+        List<LoanDto> result = loanService.getExpiredLoansByUser();
 
+        assertEquals(1, result.size());
+        assertEquals(loan.getId().toString(), result.get(0).getId());
+        verify(mapper).loanToDto(loan);
+    }
+
+    @Test
+    void getExpiredLoans_shouldReturnList() {
+        when(loanRepository.findByDueDateBeforeAndReturnedFalse(LocalDate.now())).thenReturn(List.of(loan));
+        when(mapper.loanToDto(loan)).thenReturn(loanDto);
+
+        List<LoanDto> result = loanService.getExpiredLoans();
+
+        assertEquals(1, result.size());
+        assertEquals(loan.getId().toString(), result.get(0).getId());
+        verify(mapper).loanToDto(loan);
+    }
+
+    @Test
+    void returnLoanByUser_shouldReturnLoanDto() {
+        mockCurrentUser();
+        when(loanRepository.findById(loan.getId())).thenReturn(Optional.of(loan));
+        when(loanRepository.save(loan)).thenReturn(loan);
+        when(bookRepository.save(book)).thenReturn(book);
+        when(mapper.loanToDto(loan)).thenReturn(loanDto);
+
+        LoanDto result = loanService.returnLoanByUser(loan.getId().toString());
+
+        assertNotNull(result);
+        assertTrue(loan.isReturned());
+        assertTrue(book.isAvailable());
+        verify(loanRepository).save(loan);
+        verify(bookRepository).save(book);
+        verify(mapper).loanToDto(loan);
+    }
+
+    @Test
+    void returnLoan_shouldReturnLoanDto() {
+        when(loanRepository.findById(loan.getId())).thenReturn(Optional.of(loan));
+        when(loanRepository.save(loan)).thenReturn(loan);
+        when(bookRepository.save(book)).thenReturn(book);
+        when(mapper.loanToDto(loan)).thenReturn(loanDto);
+
+        LoanDto result = loanService.returnLoan(loan.getId().toString());
+
+        assertNotNull(result);
+        assertTrue(loan.isReturned());
+        assertTrue(book.isAvailable());
+        verify(loanRepository).save(loan);
+        verify(bookRepository).save(book);
+        verify(mapper).loanToDto(loan);
     }
 }
