@@ -1,15 +1,18 @@
 package org.gszabi15.controller;
 
 import org.gszabi15.model.dto.LoanDto;
+import org.gszabi15.model.entity.BorrowRequest;
 import org.gszabi15.service.LoanService;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
+
 
 import java.util.List;
 
@@ -19,21 +22,36 @@ import java.util.List;
 public class LoanRestController {
     private final LoanService service;
 
-    @PostMapping("/borrow")
-    public LoanDto borrow(@RequestParam String userId,
-                                                   @RequestParam String bookId,
-                                                   @RequestParam(defaultValue = "14") int days) {
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PostMapping("/admin/borrow")
+    public LoanDto borrowAdmin(@RequestBody BorrowRequest request) {
+        return service.borrowBook(request.getUserEmail(), request.getBookId().toString(), request.getDays());
+    }
 
-        return service.borrowBook(userId, bookId, days);
+    @PostMapping("/borrow")
+    public LoanDto borrow(@RequestBody BorrowRequest request) {
+        return service.borrowBook(request.getBookId().toString(), request.getDays());
     }
 
     @PostMapping("/{loanId}/return")
-    public LoanDto returnLoan(@PathVariable("loanId") Long loanId) {
-            return service.returnLoan(loanId);
+    public LoanDto returnLoan(@PathVariable("loanId") String loanId) {
+            return service.returnLoanByUser(loanId);
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PostMapping("/admin/{loanId}/return")
+    public LoanDto returnLoanAdmin(@PathVariable("loanId") String loanId) {
+        return service.returnLoan(loanId);
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @GetMapping("/admin/expired")
+    public List<LoanDto> expiredAdmin() {
+        return service.getExpiredLoans();
     }
 
     @GetMapping("/expired")
     public List<LoanDto> expired() {
-        return service.getExpiredLoans();
+        return service.getExpiredLoansByUser();
     }
 }
